@@ -39,10 +39,8 @@ async def _init_database() -> None:
     table_name = f"image_records_{_driver.env}"
     ImageRecord.__tablename__ = table_name
     ImageRecord.__table__.name = table_name
-    ImageRecord.metadata.tables[table_name] = ImageRecord.__table__
-    ImageRecord.metadata.remove(ImageRecord.__table__)
-    ImageRecord.metadata._add_table(table_name, None, ImageRecord.__table__)
-    await db_manager.init_db()
+    async with db_manager._engine.begin() as conn:
+        await conn.run_sync(ImageRecord.__table__.create, checkfirst=True)
     await _migrate_id_column_type()
     await _sync_images_with_db()
 
