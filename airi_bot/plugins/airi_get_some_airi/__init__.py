@@ -4,11 +4,12 @@ from pathlib import Path
 from time import time as _time
 
 import aiofiles  # type: ignore[import-untyped]
-from nonebot import get_bot, get_driver, get_plugin_config, on_command
+from nonebot import get_bot, get_driver, get_plugin_config, on_command, on_message
 from nonebot.adapters.onebot.v11 import MessageEvent
 from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
 from nonebot.matcher import Matcher
+from nonebot.rule import keyword
 from PIL import Image
 from imagehash import dhash
 
@@ -271,7 +272,7 @@ async def handle_count_image(matcher: Matcher) -> None:
 
 _last_random_time = 0.0
 
-random_image = on_command("来点桃", block=True)
+random_image = on_message(keyword("来点桃"), block=True)
 
 
 @random_image.handle()
