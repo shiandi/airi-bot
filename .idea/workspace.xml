@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ea0adca1-db7d-4300-b279-04e4ad0432f3" name="更改" comment="修改来点桃的触发功能">
+    <list default="true" id="ea0adca1-db7d-4300-b279-04e4ad0432f3" name="更改" comment="添加黑白名单功能">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/__init__.py" afterDir="false" />
     </list>
@@ -111,7 +111,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782815649576</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="添加黑白名单功能">
+      <option name="closed" value="true" />
+      <created>1782877867013</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1782877867013</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -134,6 +142,7 @@
     <MESSAGE value="更正数据库" />
     <MESSAGE value="更改数据库端口" />
     <MESSAGE value="修改来点桃的触发功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="修改来点桃的触发功能" />
+    <MESSAGE value="添加黑白名单功能" />
+    <option name="LAST_COMMIT_MESSAGE" value="添加黑白名单功能" />
   </component>
 </project>

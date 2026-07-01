@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from time import time as _time
@@ -119,6 +120,23 @@ def _ensure_image_dir() -> Path:
         _image_dir = Path(__file__).parent / "images"
         _image_dir.mkdir(parents=True, exist_ok=True)
     return _image_dir
+
+
+def _ensure_logs_dir() -> Path:
+    """确保 logs 目录存在并返回路径。"""
+    logs_dir = Path(__file__).parent / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return logs_dir
+
+
+def _log_random_image(qq: int, img_id: int) -> None:
+    """记录一次「来点桃」触发，按天写入日志文件。"""
+    now = datetime.now()
+    log_name = now.strftime("%Y-%m-%d") + ".log"
+    log_path = _ensure_logs_dir() / log_name
+    line = f"{now.isoformat()}\t{qq}\t{img_id}\n"
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(line)
 
 
 _BLACKLIST_FILE = Path(__file__).parent / "blacklist.json"
@@ -320,6 +338,8 @@ async def handle_random_image(matcher: Matcher, event: MessageEvent) -> None:
         ).scalar()
 
     _last_random_time = now
+
+    _log_random_image(event.user_id, record.id)
 
     from nonebot.adapters.onebot.v11 import MessageSegment  # noqa: PLC0415
     img_path = _ensure_image_dir() / record.stored_name
