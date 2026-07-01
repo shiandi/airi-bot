@@ -1,3 +1,4 @@
+import json
 import uuid
 from io import BytesIO
 from pathlib import Path
@@ -9,7 +10,7 @@ from nonebot.adapters.onebot.v11 import MessageEvent
 from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
 from nonebot.matcher import Matcher
-from nonebot.rule import keyword
+from nonebot.rule import fullmatch
 from PIL import Image
 from imagehash import dhash
 
@@ -118,6 +119,24 @@ def _ensure_image_dir() -> Path:
         _image_dir = Path(__file__).parent / "images"
         _image_dir.mkdir(parents=True, exist_ok=True)
     return _image_dir
+
+
+_BLACKLIST_FILE = Path(__file__).parent / "blacklist.json"
+_blacklist: set[int] = set()
+
+
+def _load_blacklist() -> set[int]:
+    global _blacklist
+    if _BLACKLIST_FILE.exists():
+        _blacklist = set(json.loads(_BLACKLIST_FILE.read_text(encoding="utf-8")))
+    return _blacklist
+
+
+def _save_blacklist() -> None:
+    _BLACKLIST_FILE.write_text(json.dumps(sorted(_blacklist)), encoding="utf-8")
+
+
+_load_blacklist()
 
 
 def _compute_dhash(image_bytes: bytes) -> str:
@@ -272,11 +291,14 @@ async def handle_count_image(matcher: Matcher) -> None:
 
 _last_random_time = 0.0
 
-random_image = on_message(keyword("来点桃"), block=True)
+random_image = on_message(fullmatch("来点桃"), block=True)
 
 
 @random_image.handle()
-async def handle_random_image(matcher: Matcher) -> None:
+async def handle_random_image(matcher: Matcher, event: MessageEvent) -> None:
+    if event.user_id in _blacklist:
+        await matcher.finish("你已被拉黑，无法使用此功能")
+
     global _last_random_time
     now = _time()
     if now - _last_random_time < config.random_image_cooldown:
@@ -302,3 +324,46 @@ async def handle_random_image(matcher: Matcher) -> None:
     from nonebot.adapters.onebot.v11 import MessageSegment  # noqa: PLC0415
     img_path = _ensure_image_dir() / record.stored_name
     await matcher.finish(MessageSegment.image(img_path))
+
+
+from nonebot.rule import Rule  # noqa: E402
+
+
+def _blacklist_rule(event: MessageEvent) -> bool:
+    return event.get_plaintext().strip().startswith(("/黑名单添加", "/黑名单删除"))
+
+
+blacklist_mgr = on_message(Rule(_blacklist_rule), block=True, permission=SUPERUSER)
+
+
+def _parse_at_targets(event: MessageEvent) -> list[int]:
+    return [int(seg.data["qq"]) for seg in event.message["at"]]
+
+
+@blacklist_mgr.handle()
+async def handle_blacklist(matcher: Matcher, event: MessageEvent) -> None:
+    plain = event.message.extract_plain_text().strip()
+
+    if plain.startswith("/黑名单添加"):
+        targets = _parse_at_targets(event)
+        if not targets:
+            await matcher.finish("请 @ 要拉黑的成员，例如：/黑名单添加 @成员")
+        for qq in targets:
+            if qq in _blacklist:
+                await matcher.send(f"{qq} 已在黑名单中")
+                continue
+            _blacklist.add(qq)
+            _save_blacklist()
+            await matcher.send(f"已将 {qq} 加入黑名单")
+
+    elif plain.startswith("/黑名单删除"):
+        targets = _parse_at_targets(event)
+        if not targets:
+            await matcher.finish("请 @ 要移出的成员，例如：/黑名单删除 @成员")
+        for qq in targets:
+            if qq not in _blacklist:
+                await matcher.send(f"{qq} 不在黑名单中")
+                continue
+            _blacklist.discard(qq)
+            _save_blacklist()
+            await matcher.send(f"已将 {qq} 移出黑名单")
