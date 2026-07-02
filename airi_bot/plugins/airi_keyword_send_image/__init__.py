@@ -22,6 +22,7 @@ _imgs_dir = Path(__file__).parent / "imgs"
 _KEYWORD_IMAGE_MAP = {
     "到底有多强": "ddydq.jpg",
     "ddydq": "ddydq.jpg",
+    "我桃井出来了": "wtjcll",
 }
 
 _last_trigger_time = 0.0
