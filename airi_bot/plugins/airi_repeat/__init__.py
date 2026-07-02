@@ -12,7 +12,7 @@ __plugin_meta__ = PluginMetadata(
     config=Config,
 )
 
-REPEAT_THRESHOLD = 5
+REPEAT_THRESHOLD = 4
 
 # 每个群当前正在复读的文字及次数 { group_id: (text, count) }
 _current_repeat: dict[int, tuple[str, int]] = {}
