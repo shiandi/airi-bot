@@ -1,7 +1,8 @@
 import asyncio
+from datetime import datetime
 from pathlib import Path
 
-from nonebot import get_driver, on_command, logger
+from nonebot import on_command
 from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
 from nonebot.matcher import Matcher
@@ -20,6 +21,16 @@ def _find_project_root() -> str:
         if (parent / ".git").exists():
             return str(parent)
     return str(Path(__file__).resolve().parent.parent.parent.parent)
+
+
+def _log_git_pull(message: str) -> None:
+    log_dir = Path(__file__).parent / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_name = datetime.now().strftime("%Y-%m-%d") + ".log"
+    log_path = log_dir / log_name
+    line = f"{datetime.now().isoformat()}\t{message}\n"
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(line)
 
 
 git_pull = on_command("git pull", block=True, permission=SUPERUSER)
@@ -46,7 +57,6 @@ async def handle_git_pull(matcher: Matcher) -> None:
         await matcher.finish(f"git pull 成功:\n{output}")
 
     # 拉取了新代码，即将触发重载，不尝试发送结果消息
-    logger.info(f"git pull 成功:\n{output}")
-    # 给消息队列一点时间把前面的 "正在执行" 发出去
+    _log_git_pull(f"git pull 成功:\n{output}")
     await asyncio.sleep(0.5)
     await matcher.finish()
