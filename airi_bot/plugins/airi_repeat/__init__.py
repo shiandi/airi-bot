@@ -42,17 +42,23 @@ async def handle_repeat(event: GroupMessageEvent) -> None:
     group_id = event.group_id
     prev = _current_repeat.get(group_id)
 
-    if prev is None or prev[0] != text:
-        # 和上一条不一样，重置计数
+    if prev is None:
         _current_repeat[group_id] = (text, 1)
         return
 
-    # 和上一条一样，计数 +1
+    if prev[0] != text:
+        _current_repeat[group_id] = (text, 1)
+        return
+
+    # bot 已经复读过了（count == 0 表示已复读），跳过
+    if prev[1] == 0:
+        return
+
     count = prev[1] + 1
 
     if count >= REPEAT_THRESHOLD:
-        # 达到阈值，复读并清空
-        del _current_repeat[group_id]
+        # 标记已复读，count 置 0，直到下一条不同文字到来才清除
+        _current_repeat[group_id] = (text, 0)
         await repeat_matcher.finish(text)
     else:
         _current_repeat[group_id] = (text, count)
