@@ -25,25 +25,24 @@ _KEYWORD_IMAGE_MAP = {
     "我桃井出来了": "wtjcll.jpg",
 }
 
-_last_trigger_time = 0.0
+_last_trigger_time: dict[str, float] = {}
 
 keyword_matcher = on_keyword(_KEYWORD_IMAGE_MAP.keys(), block=True)
 
 
 @keyword_matcher.handle()
 async def handle_keyword(event: MessageEvent) -> None:
-    global _last_trigger_time
-
-    now = _time()
-    if now - _last_trigger_time < config.cooldown:
-        return
-
-    _last_trigger_time = now
-
     text = event.get_plaintext().strip()
     img_name = _KEYWORD_IMAGE_MAP.get(text)
     if img_name is None:
         return
+
+    now = _time()
+    last = _last_trigger_time.get(img_name, 0.0)
+    if now - last < config.cooldown:
+        return
+
+    _last_trigger_time[img_name] = now
 
     img_path = _imgs_dir / img_name
     if not img_path.is_file():
