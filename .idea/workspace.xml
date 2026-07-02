@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ea0adca1-db7d-4300-b279-04e4ad0432f3" name="更改" comment="添加触发拉取仓库功能">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/database/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/database/manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/database/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_get_some_airi/database/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airi_bot/plugins/airi_git_pull/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_git_pull/__init__.py" afterDir="false" />
-    </list>
+    <list default="true" id="ea0adca1-db7d-4300-b279-04e4ad0432f3" name="更改" comment="优化代码" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -155,7 +148,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782989492716</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="优化代码">
+      <option name="closed" value="true" />
+      <created>1782990230342</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1782990230342</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -183,6 +184,7 @@
     <MESSAGE value="随机功能优化，防止图片重复性过高" />
     <MESSAGE value="添加删除图片功能" />
     <MESSAGE value="添加触发拉取仓库功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="添加触发拉取仓库功能" />
+    <MESSAGE value="优化代码" />
+    <option name="LAST_COMMIT_MESSAGE" value="优化代码" />
   </component>
 </project>
