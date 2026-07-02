@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ea0adca1-db7d-4300-b279-04e4ad0432f3" name="更改" comment="优化代码" />
+    <list default="true" id="ea0adca1-db7d-4300-b279-04e4ad0432f3" name="更改" comment="添加跟复读功能">
+      <change afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_keyword_send_image/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_keyword_send_image/config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/airi_bot/plugins/airi_keyword_send_image/imgs/ddydq.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -156,7 +161,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782990230342</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="添加跟复读功能">
+      <option name="closed" value="true" />
+      <created>1782990671540</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1782990671540</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -185,6 +198,7 @@
     <MESSAGE value="添加删除图片功能" />
     <MESSAGE value="添加触发拉取仓库功能" />
     <MESSAGE value="优化代码" />
-    <option name="LAST_COMMIT_MESSAGE" value="优化代码" />
+    <MESSAGE value="添加跟复读功能" />
+    <option name="LAST_COMMIT_MESSAGE" value="添加跟复读功能" />
   </component>
 </project>
