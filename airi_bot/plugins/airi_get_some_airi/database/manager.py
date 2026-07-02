@@ -1,5 +1,3 @@
-import traceback
-
 from nonebot import logger
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
@@ -8,7 +6,7 @@ from .model import Base
 
 class DatabaseManager:
     def __init__(self, database_url: str) -> None:
-        logger.info(f"[DB] 正在创建数据库引擎: {database_url}")
+        logger.info("[DB] 正在创建数据库引擎")
         self._database_url = database_url
         self._engine = create_async_engine(database_url, echo=False)
         self._sessionmaker = async_sessionmaker(
@@ -23,8 +21,7 @@ class DatabaseManager:
                 await conn.run_sync(Base.metadata.create_all)
             logger.info("[DB] 数据库表结构初始化完成")
         except Exception:
-            logger.error(f"[DB ERROR] database_url = {self._database_url}")
-            traceback.print_exc()
+            logger.exception("[DB ERROR] 数据库表结构初始化失败")
             raise
 
     def session(self) -> AsyncSession:

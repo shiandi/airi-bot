@@ -29,7 +29,7 @@ config = get_plugin_config(Config)
 _database_url = resolve_database_url(config.database_url)
 
 from nonebot import logger  # noqa: E402
-logger.info(f"Database URL: {_database_url}")
+logger.info("airi_get_some_airi 插件已加载")
 
 db_manager = DatabaseManager(_database_url)
 _image_dir: Path | None = None
@@ -129,14 +129,14 @@ def _ensure_logs_dir() -> Path:
     return logs_dir
 
 
-def _log_random_image(qq: int, img_id: int) -> None:
+async def _log_random_image(qq: int, img_id: int) -> None:
     """记录一次「来点桃」触发，按天写入日志文件。"""
     now = datetime.now()
     log_name = now.strftime("%Y-%m-%d") + ".log"
     log_path = _ensure_logs_dir() / log_name
     line = f"{now.isoformat()}\t{qq}\t{img_id}\n"
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(line)
+    async with aiofiles.open(str(log_path), "a", encoding="utf-8") as f:
+        await f.write(line)
 
 
 _BLACKLIST_FILE = Path(__file__).parent / "blacklist.json"
@@ -150,8 +150,9 @@ def _load_blacklist() -> set[int]:
     return _blacklist
 
 
-def _save_blacklist() -> None:
-    _BLACKLIST_FILE.write_text(json.dumps(sorted(_blacklist)), encoding="utf-8")
+async def _save_blacklist() -> None:
+    async with aiofiles.open(str(_BLACKLIST_FILE), "w", encoding="utf-8") as f:
+        await f.write(json.dumps(sorted(_blacklist)))
 
 
 _load_blacklist()
@@ -309,7 +310,6 @@ async def handle_count_image(matcher: Matcher) -> None:
 
 import random  # noqa: E402
 
-_RECENT_EXCLUDE_RATIO = 0.5  # 排除最近 50% 已发送的图片
 _recent_ids: list[int] = []
 _reply_id_map: dict[int, int] = {}  # message_id → img_id
 _last_random_time = 0.0
@@ -337,7 +337,7 @@ async def handle_random_image(matcher: Matcher, event: MessageEvent) -> None:
     # 从最近队列中清理已不存在的 id（被删除的图片）
     _recent_ids = [i for i in _recent_ids if i in all_ids]
 
-    max_exclude = int(len(all_ids) * _RECENT_EXCLUDE_RATIO)
+    max_exclude = int(len(all_ids) * config.recent_exclude_ratio)
     excluded = set(_recent_ids[-max_exclude:]) if max_exclude else set()
     candidates = [i for i in all_ids if i not in excluded]
 
@@ -359,7 +359,7 @@ async def handle_random_image(matcher: Matcher, event: MessageEvent) -> None:
             await session.execute(select(ImageRecord).where(ImageRecord.id == img_id))
         ).scalar_one()
 
-    _log_random_image(event.user_id, record.id)
+    await _log_random_image(event.user_id, record.id)
 
     from nonebot.adapters.onebot.v11 import MessageSegment  # noqa: PLC0415
     img_path = _ensure_image_dir() / record.stored_name
@@ -399,7 +399,7 @@ async def handle_blacklist(matcher: Matcher, event: MessageEvent) -> None:
                 await matcher.send(f"{qq} 已在黑名单中")
                 continue
             _blacklist.add(qq)
-            _save_blacklist()
+            await _save_blacklist()
             await matcher.send(f"已将 {qq} 加入黑名单")
 
     elif plain.startswith("/黑名单删除"):
@@ -411,7 +411,7 @@ async def handle_blacklist(matcher: Matcher, event: MessageEvent) -> None:
                 await matcher.send(f"{qq} 不在黑名单中")
                 continue
             _blacklist.discard(qq)
-            _save_blacklist()
+            await _save_blacklist()
             await matcher.send(f"已将 {qq} 移出黑名单")
 
 

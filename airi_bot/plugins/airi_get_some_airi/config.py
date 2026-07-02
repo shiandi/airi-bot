@@ -3,9 +3,10 @@ from pydantic import BaseModel
 
 class Config(BaseModel):
     database_url: str = ""
-    dedup_hamming_threshold: int = 8
+    dedup_hamming_threshold: int = 10
     enable_upload: bool = True
     random_image_cooldown: int = 10
+    recent_exclude_ratio: float = 0.5
 
 
 def resolve_database_url(raw_url: str) -> str:
