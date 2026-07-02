@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from nonebot import get_plugin_config, on_command
+from nonebot import on_command
 from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
 from nonebot.matcher import Matcher
@@ -11,8 +11,6 @@ __plugin_meta__ = PluginMetadata(
     description="git pull 指令：管理员发送「git pull」从远端拉取最新代码",
     usage="发送「git pull」执行 git pull",
 )
-
-GIT_PULL_TIMEOUT = 60  # 秒
 
 
 def _find_project_root() -> str:
@@ -31,18 +29,12 @@ git_pull = on_command("git pull", block=True, permission=SUPERUSER)
 async def handle_git_pull(matcher: Matcher) -> None:
     project_root = _find_project_root()
 
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "git", "-C", project_root, "pull",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(), timeout=GIT_PULL_TIMEOUT
-        )
-    except asyncio.TimeoutError:
-        proc.kill()
-        await matcher.finish("git pull 超时（超过 60 秒）")
+    proc = await asyncio.create_subprocess_exec(
+        "git", "-C", project_root, "pull",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
 
     output = stdout.decode().strip() or stderr.decode().strip()
     if proc.returncode != 0:
