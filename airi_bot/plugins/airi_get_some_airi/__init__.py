@@ -307,6 +307,10 @@ async def handle_count_image(matcher: Matcher) -> None:
     await matcher.finish(f"共 {count} 张图片")
 
 
+import random  # noqa: E402
+
+_RECENT_EXCLUDE_RATIO = 0.5  # 排除最近 50% 已发送的图片
+_recent_ids: list[int] = []
 _last_random_time = 0.0
 
 random_image = on_message(fullmatch("来点桃"), block=True)
@@ -317,27 +321,42 @@ async def handle_random_image(matcher: Matcher, event: MessageEvent) -> None:
     if event.user_id in _blacklist:
         await matcher.finish("你已被拉黑，无法使用此功能")
 
-    global _last_random_time
+    global _last_random_time, _recent_ids
     now = _time()
     if now - _last_random_time < config.random_image_cooldown:
         remaining = int(config.random_image_cooldown - (now - _last_random_time))
         await matcher.finish(f"冷却中，请 {remaining} 秒后再试")
 
-    from sqlalchemy import select, func  # noqa: PLC0415
+    from sqlalchemy import select  # noqa: PLC0415
 
     async with db_manager.session() as session:
-        count = (await session.execute(select(func.count(ImageRecord.id)))).scalar()
-        if count == 0:
-            await matcher.finish("暂无图片")
+        result = await session.execute(select(ImageRecord.id))
+        all_ids = [row[0] for row in result]
 
-        offset = int((await session.execute(func.random())).scalar() * count)
-        record = (
-            await session.execute(
-                select(ImageRecord).offset(offset).limit(1)
-            )
-        ).scalar()
+    # 从最近队列中清理已不存在的 id（被删除的图片）
+    _recent_ids = [i for i in _recent_ids if i in all_ids]
+
+    max_exclude = int(len(all_ids) * _RECENT_EXCLUDE_RATIO)
+    excluded = set(_recent_ids[-max_exclude:]) if max_exclude else set()
+    candidates = [i for i in all_ids if i not in excluded]
+
+    if not candidates:
+        # 全部被排除，重置队列，全部可选
+        candidates = all_ids
+        _recent_ids.clear()
+
+    img_id = random.choice(candidates)
+    _recent_ids.append(img_id)
+    # 保持队列大小不超过所有图片的总数
+    while len(_recent_ids) > len(all_ids):
+        _recent_ids.pop(0)
 
     _last_random_time = now
+
+    async with db_manager.session() as session:
+        record = (
+            await session.execute(select(ImageRecord).where(ImageRecord.id == img_id))
+        ).scalar_one()
 
     _log_random_image(event.user_id, record.id)
 
