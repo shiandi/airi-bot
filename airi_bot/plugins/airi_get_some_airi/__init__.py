@@ -311,6 +311,7 @@ import random  # noqa: E402
 
 _RECENT_EXCLUDE_RATIO = 0.5  # 排除最近 50% 已发送的图片
 _recent_ids: list[int] = []
+_reply_id_map: dict[int, int] = {}  # message_id → img_id
 _last_random_time = 0.0
 
 random_image = on_message(fullmatch("来点桃"), block=True)
@@ -362,7 +363,9 @@ async def handle_random_image(matcher: Matcher, event: MessageEvent) -> None:
 
     from nonebot.adapters.onebot.v11 import MessageSegment  # noqa: PLC0415
     img_path = _ensure_image_dir() / record.stored_name
-    await matcher.finish(MessageSegment.image(img_path))
+    msg_id_data = await matcher.send(MessageSegment.image(img_path))
+    _reply_id_map[msg_id_data["message_id"]] = img_id
+    await matcher.finish()
 
 
 from nonebot.rule import Rule  # noqa: E402
@@ -370,6 +373,10 @@ from nonebot.rule import Rule  # noqa: E402
 
 def _blacklist_rule(event: MessageEvent) -> bool:
     return event.get_plaintext().strip().startswith(("/黑名单添加", "/黑名单删除"))
+
+
+def _delete_image_rule(event: MessageEvent) -> bool:
+    return event.get_plaintext().strip() == "/删除图片"
 
 
 blacklist_mgr = on_message(Rule(_blacklist_rule), block=True, permission=SUPERUSER)
@@ -406,3 +413,50 @@ async def handle_blacklist(matcher: Matcher, event: MessageEvent) -> None:
             _blacklist.discard(qq)
             _save_blacklist()
             await matcher.send(f"已将 {qq} 移出黑名单")
+
+
+delete_image = on_message(Rule(_delete_image_rule), block=True, permission=SUPERUSER)
+
+
+@delete_image.handle()
+async def handle_delete_image(matcher: Matcher, event: MessageEvent) -> None:
+    reply = event.reply
+    if reply is None:
+        await matcher.finish("请回复要删除的那张图片消息，再发送 /删除图片")
+
+    global _reply_id_map
+
+    # 清理无效映射，同时查找目标
+    img_id = _reply_id_map.pop(reply.message_id, None)
+    if img_id is None:
+        await matcher.finish("未找到该消息对应的图片，可能已过期或不是机器人发送的图片")
+
+    # 顺便清理映射表，移除可能已失效的条目（上限 5000 条）
+    if len(_reply_id_map) > 5000:
+        _reply_id_map.clear()
+
+    from sqlalchemy import delete, select  # noqa: PLC0415
+
+    async with db_manager.session() as session:
+        record = (
+            await session.execute(
+                select(ImageRecord).where(ImageRecord.id == img_id)
+            )
+        ).scalar()
+
+        if record is None:
+            await matcher.finish("图片记录已不存在，可能已被删除")
+
+        img_path = _ensure_image_dir() / record.stored_name
+        if img_path.exists():
+            img_path.unlink()
+
+        await session.execute(delete(ImageRecord).where(ImageRecord.id == img_id))
+        await session.commit()
+
+    # 从最近队列中清理已删除的 id
+    global _recent_ids
+    if img_id in _recent_ids:
+        _recent_ids = [i for i in _recent_ids if i != img_id]
+
+    await matcher.finish(f"已删除图片 id={img_id}")
