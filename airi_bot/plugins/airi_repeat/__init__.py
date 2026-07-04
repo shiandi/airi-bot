@@ -1,3 +1,5 @@
+import re
+
 from nonebot import on_message, logger
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message
 from nonebot.plugin import PluginMetadata
@@ -13,12 +15,28 @@ __plugin_meta__ = PluginMetadata(
 
 REPEAT_THRESHOLD = 5
 
-# 每个群当前接收到的上一条消息内容 { group_id: text }
-_last_message: dict[int, str] = {}
-# 每个群上一次复读的消息内容 { group_id: text }
+# 每个群上一次复读的消息（归一化后），用于防止同一条反复复读
 _last_repeated: dict[int, str] = {}
-# 每个群当前复读计数 { group_id: count }
+# 每个群上一条消息（归一化后），用于判断是否连续相同
+_last_message: dict[int, str] = {}
+# 每个群当前连续相同计数
 _repeat_count: dict[int, int] = {}
+
+# CQ 码中每次会变化的动态字段，匹配时忽略
+_DYNAMIC_CQ_KEYS = {"url", "fileid", "rkey", "file_size"}
+
+
+def _normalize(text: str) -> str:
+    """去掉 CQ 码中动态参数和 HTML 转义，保留稳定字段用于比较"""
+    text = text.replace("&amp;", "&")
+
+    def _clean(m: re.Match) -> str:
+        args = m.group(1)
+        parts = args.split(",")
+        stable = [p for p in parts if p.split("=", 1)[0] not in _DYNAMIC_CQ_KEYS]
+        return f"[{','.join(stable)}]"
+
+    return re.sub(r"\[([^\[\]]+)\]", _clean, text)
 
 
 repeat_matcher = on_message()
@@ -26,64 +44,32 @@ repeat_matcher = on_message()
 
 @repeat_matcher.handle()
 async def handle_repeat(event: GroupMessageEvent) -> None:
-    # 忽略 bot 自己发的消息
     if event.user_id == event.self_id:
         return
 
     group_id = event.group_id
-    text = str(event.get_message()).replace("&amp;", "&")
     message = event.get_message()
+    text = _normalize(str(message))
 
-    # 第一步：判断是否和上一次复读的相同，相同则跳过
-    last_repeated = _last_repeated.get(group_id)
-    if last_repeated is not None and text == last_repeated:
-        logger.info(
-            f"[airi_repeat] 跳过-与上次复读相同 | "
-            f"text={text} | "
-            f"last_repeated={last_repeated} | "
-            f"last_message={_last_message.get(group_id, 'None')} | "
-            f"count={_repeat_count.get(group_id, 0)}"
-        )
+    # 检查 1：防止同一条消息反复复读
+    if _last_repeated.get(group_id) == text:
         return
 
-    # 记录当前消息
-    prev_message = _last_message.get(group_id)
+    # 检查 2：和上一条不同 → 重置计数
+    prev = _last_message.get(group_id)
     _last_message[group_id] = text
 
-    # 第二步：判断和上一条消息是否相同
-    if text != prev_message:
+    if text != prev:
         _repeat_count[group_id] = 1
         _last_repeated.pop(group_id, None)
-        logger.info(
-            f"[airi_repeat] 重置-消息不同 | "
-            f"text={text} | "
-            f"prev={prev_message or 'None'} | "
-            f"last_repeated={_last_repeated.get(group_id, 'None')} | "
-            f"count=1"
-        )
         return
 
-    # 相同，count+1
+    # 连续相同 → 计数 +1
     count = _repeat_count.get(group_id, 0) + 1
-    _repeat_count[group_id] = count
 
     if count >= REPEAT_THRESHOLD:
-        # 复读，记录本次复读内容，清空计数
         _last_repeated[group_id] = text
         _repeat_count[group_id] = 0
-        logger.info(
-            f"[airi_repeat] 触发复读！ | "
-            f"text={text} | "
-            f"count={count} | "
-            f"last_message={text} | "
-            f"last_repeated={text}"
-        )
         await repeat_matcher.finish(message)
     else:
-        logger.info(
-            f"[airi_repeat] 计数中 | "
-            f"text={text} | "
-            f"count={count} | "
-            f"last_message={_last_message.get(group_id, 'None')} | "
-            f"last_repeated={_last_repeated.get(group_id, 'None')}"
-        )
+        _repeat_count[group_id] = count
