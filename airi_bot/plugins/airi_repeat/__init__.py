@@ -1,7 +1,6 @@
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 from nonebot.plugin import PluginMetadata
-from nonebot.rule import Rule
 
 from .config import Config
 
@@ -12,53 +11,52 @@ __plugin_meta__ = PluginMetadata(
     config=Config,
 )
 
-REPEAT_THRESHOLD = 4
+REPEAT_THRESHOLD = 5
 
-# 每个群当前正在复读的文字及次数 { group_id: (text, count) }
-_current_repeat: dict[int, tuple[str, int]] = {}
-
-
-async def _is_text_group_message(event: GroupMessageEvent) -> bool:
-    """仅限群聊中的纯文本消息，排除含图片、表情、@ 等的消息"""
-    msg = str(event.get_message())
-    if not msg.strip():
-        return False
-    if "[" in msg and "CQ:" in msg:
-        return False
-    return True
+# 每个群当前接收到的上一条消息内容 { group_id: text }
+_last_message: dict[int, str] = {}
+# 每个群上一次复读的消息内容 { group_id: text }
+_last_repeated: dict[int, str] = {}
+# 每个群当前复读计数 { group_id: count }
+_repeat_count: dict[int, int] = {}
 
 
-repeat_matcher = on_message(Rule(_is_text_group_message))
+repeat_matcher = on_message()
 
 
 @repeat_matcher.handle()
 async def handle_repeat(event: GroupMessageEvent) -> None:
-    text = str(event.get_message()).strip()
-
     # 忽略 bot 自己发的消息
     if event.user_id == event.self_id:
         return
 
     group_id = event.group_id
-    prev = _current_repeat.get(group_id)
+    text = str(event.get_message())
 
-    if prev is None:
-        _current_repeat[group_id] = (text, 1)
+    # 过滤 CQ 码消息（图片、语音等）
+    if "[CQ:" in text:
         return
 
-    if prev[0] != text:
-        _current_repeat[group_id] = (text, 1)
+    # 第一步：判断是否和上一次复读的相同，相同则跳过
+    if text == _last_repeated.get(group_id):
         return
 
-    # bot 已经复读过了（count == 0 表示已复读），跳过
-    if prev[1] == 0:
+    # 记录当前消息
+    prev_message = _last_message.get(group_id)
+    _last_message[group_id] = text
+
+    # 第二步：判断和上一条消息是否相同
+    if text != prev_message:
+        _repeat_count[group_id] = 1
+        _last_repeated.pop(group_id, None)
         return
 
-    count = prev[1] + 1
+    # 相同，count+1
+    count = _repeat_count.get(group_id, 0) + 1
+    _repeat_count[group_id] = count
 
     if count >= REPEAT_THRESHOLD:
-        # 标记已复读，count 置 0，直到下一条不同文字到来才清除
-        _current_repeat[group_id] = (text, 0)
+        # 复读，记录本次复读内容，清空计数
+        _last_repeated[group_id] = text
+        _repeat_count[group_id] = 0
         await repeat_matcher.finish(text)
-    else:
-        _current_repeat[group_id] = (text, count)
