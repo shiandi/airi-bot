@@ -1,12 +1,12 @@
 from nonebot import on_message
-from nonebot.adapters.onebot.v11 import GroupMessageEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message
 from nonebot.plugin import PluginMetadata
 
 from .config import Config
 
 __plugin_meta__ = PluginMetadata(
     name="airi_repeat",
-    description="群消息复读：同一条文字消息被复读超过 5 次后，bot 跟上复读",
+    description="群消息复读：同一条消息被复读超过 5 次后，bot 跟上复读",
     usage="群聊中自动触发，无需指令",
     config=Config,
 )
@@ -32,10 +32,7 @@ async def handle_repeat(event: GroupMessageEvent) -> None:
 
     group_id = event.group_id
     text = str(event.get_message())
-
-    # 过滤 CQ 码消息（图片、语音等）
-    if "[CQ:" in text:
-        return
+    message = event.get_message()
 
     # 第一步：判断是否和上一次复读的相同，相同则跳过
     if text == _last_repeated.get(group_id):
@@ -59,4 +56,4 @@ async def handle_repeat(event: GroupMessageEvent) -> None:
         # 复读，记录本次复读内容，清空计数
         _last_repeated[group_id] = text
         _repeat_count[group_id] = 0
-        await repeat_matcher.finish(text)
+        await repeat_matcher.finish(message)
