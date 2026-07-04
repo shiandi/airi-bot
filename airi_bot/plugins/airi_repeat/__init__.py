@@ -1,4 +1,4 @@
-from nonebot import on_message
+from nonebot import on_message, logger
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message
 from nonebot.plugin import PluginMetadata
 
@@ -31,11 +31,19 @@ async def handle_repeat(event: GroupMessageEvent) -> None:
         return
 
     group_id = event.group_id
-    text = str(event.get_message())
+    text = str(event.get_message()).replace("&amp;", "&")
     message = event.get_message()
 
     # 第一步：判断是否和上一次复读的相同，相同则跳过
-    if text == _last_repeated.get(group_id):
+    last_repeated = _last_repeated.get(group_id)
+    if last_repeated is not None and text == last_repeated:
+        logger.info(
+            f"[airi_repeat] 跳过-与上次复读相同 | "
+            f"text={text} | "
+            f"last_repeated={last_repeated} | "
+            f"last_message={_last_message.get(group_id, 'None')} | "
+            f"count={_repeat_count.get(group_id, 0)}"
+        )
         return
 
     # 记录当前消息
@@ -46,6 +54,13 @@ async def handle_repeat(event: GroupMessageEvent) -> None:
     if text != prev_message:
         _repeat_count[group_id] = 1
         _last_repeated.pop(group_id, None)
+        logger.info(
+            f"[airi_repeat] 重置-消息不同 | "
+            f"text={text} | "
+            f"prev={prev_message or 'None'} | "
+            f"last_repeated={_last_repeated.get(group_id, 'None')} | "
+            f"count=1"
+        )
         return
 
     # 相同，count+1
@@ -56,4 +71,19 @@ async def handle_repeat(event: GroupMessageEvent) -> None:
         # 复读，记录本次复读内容，清空计数
         _last_repeated[group_id] = text
         _repeat_count[group_id] = 0
+        logger.info(
+            f"[airi_repeat] 触发复读！ | "
+            f"text={text} | "
+            f"count={count} | "
+            f"last_message={text} | "
+            f"last_repeated={text}"
+        )
         await repeat_matcher.finish(message)
+    else:
+        logger.info(
+            f"[airi_repeat] 计数中 | "
+            f"text={text} | "
+            f"count={count} | "
+            f"last_message={_last_message.get(group_id, 'None')} | "
+            f"last_repeated={_last_repeated.get(group_id, 'None')}"
+        )
