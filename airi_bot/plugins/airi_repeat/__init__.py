@@ -44,8 +44,6 @@ repeat_matcher = on_message()
 
 @repeat_matcher.handle()
 async def handle_repeat(event: GroupMessageEvent) -> None:
-    if event.user_id == event.self_id:
-        return
 
     group_id = event.group_id
     message = event.get_message()
