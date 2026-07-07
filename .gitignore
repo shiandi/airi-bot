@@ -141,6 +141,9 @@ dmypy.json
 # proxyai
 .proxyai/
 
+# WOL config
+airi_bot/plugins/airi_mine_command/mac.txt
+
 # images
 airi_bot/plugins/airi_get_some_airi/images/
 
